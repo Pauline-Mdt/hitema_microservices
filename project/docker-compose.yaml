@@ -1,0 +1,52 @@
+version: "3"
+
+services:
+  db:
+    container_name: les-gorgones-db
+    image: mysql:8.1
+    environment:
+      - MYSQL_ROOT_PASSWORD=secretpwd@r00t
+      - MYSQL_DATABASE=les_gorgones
+      - MYSQL_USER=admin_lg_2023
+      - MYSQL_PASSWORD=secretpwd@user
+    volumes:
+      - ./db/les_gorgones.sql:/docker-entrypoint-initdb.d/les_gorgones.sql
+    ports:
+      - "3306"
+    networks:
+      - les-gorgones-db-network
+
+  laravel_api:
+    container_name: les-gorgones-api
+    build:
+      context: .
+      dockerfile: DockerfileLaravel
+    volumes:
+      - ./api:/api
+    ports:
+      - "8000:80"
+    depends_on:
+      - db
+    networks:
+      - les-gorgones-db-network
+      - les-gorgones-api-network
+
+  react_app:
+    container_name: les-gorgones-back-office
+    build:
+      context: .
+      dockerfile: DockerfileReact
+    volumes:
+      - ./back-office:/back-office
+    ports:
+      - "3000:3000"
+    depends_on:
+      - laravel_api
+    networks:
+      - les-gorgones-api-network
+
+networks:
+  les-gorgones-db-network:
+    driver: bridge
+  les-gorgones-api-network:
+    driver: bridge
