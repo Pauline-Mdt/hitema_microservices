@@ -8,7 +8,7 @@ const AUTH_TOKEN = 'Bearer '+getToken();
 
 export const http = axios.create({
     // baseURL: 'http://api.les-gorgones.localhost/api',
-    baseURL: 'http://0.0.0.0:8000/api',
+    baseURL: 'https://0.0.0.0/api',
     timeout: 1000,
     headers: {
         'Authorization' : AUTH_TOKEN,

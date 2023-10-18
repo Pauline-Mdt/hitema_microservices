@@ -30,6 +30,7 @@ services:
     networks:
       - les-gorgones-db-network
       - les-gorgones-api-network
+      - les-gorgones-nginx-network
 
   react_app:
     container_name: les-gorgones-back-office
@@ -44,9 +45,53 @@ services:
       - laravel_api
     networks:
       - les-gorgones-api-network
+      - les-gorgones-nginx-network
+
+  nginx:
+    container_name: les-gorgones-nginx
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./certs:/etc/ssl/certs
+    ports:
+      - "8080:80"
+      - "443:443"
+    depends_on:
+      - react_app
+    networks:
+      - les-gorgones-nginx-network
+    restart: always
+
+  portainer_agent:
+    container_name: les-gorgones-portainer
+    image: portainer/portainer-ce
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    ports:
+      - "9000:9000"
+    restart: always
+
+  weave_scope:
+    container_name: les-gorgones-weave-scope
+    image: weaveworks/scope:latest
+    labels:
+      - "works.weave.role=system"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:rw"
+    ports:
+      - "4040:4040"
+    command:
+      - "--probe.docker=true"
+    restart: always
 
 networks:
   les-gorgones-db-network:
     driver: bridge
   les-gorgones-api-network:
     driver: bridge
+  les-gorgones-nginx-network:
+    driver: bridge
+
+volumes:
+  portainer_data:
