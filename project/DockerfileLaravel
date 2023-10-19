@@ -26,9 +26,18 @@ WORKDIR /var/www/html
 
 # Copy application files
 COPY ./api/ .
-COPY ./api/.env.production .env
+COPY ./api/.env.example .env
 
-#ENV APP_ENV=production
+# Set environment variables for Laravel
+ENV APP_ENV=production
+ENV APP_DEBUG=false
+ENV APP_URL=https://0.0.0.0
+ENV DB_CONNECTION=mysql
+ENV DB_HOST=db
+ENV DB_PORT=3306
+ENV DB_DATABASE=les_gorgones
+ENV DB_USERNAME=admin_lg_2023
+ENV DB_PASSWORD=secretpwd@user
 
 # Install dependencies and give rights to apache user
 RUN composer install --optimize-autoloader --no-dev

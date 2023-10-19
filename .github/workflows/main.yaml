@@ -1,0 +1,130 @@
+name: GitHub Actions
+run-name: ${{ github.actor }} ${{ github.event_name }} on ${{ github.head_ref || github.ref_name }}
+
+on:
+  push:
+    branches: master
+  pull_request:
+    branches: master
+
+jobs:
+  test-laravel:
+    name: Laravel tests
+    if: github.actor != 'github-actions'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./project/api
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: List files
+        run: ls -la
+
+      - name: Copy .env
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
+      - name: Install Dependencies
+        run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+      - name: Generate key
+        run: php artisan key:generate
+
+      - name: Execute tests
+        run: php artisan test
+
+  test-react:
+    name: React tests
+    if: github.actor != 'github-actions'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./project/back-office
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: List files
+        run: ls -la
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Execute tests
+        run: npm test
+
+  build-and-push:
+    name: Build and push images on dockerhub
+    if: github.actor != 'github-actions'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./project
+
+    needs:
+      - test-laravel
+      - test-react
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: List files
+        run: ls -la
+
+      - name: Login to Docker Hub
+        run: docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Build Laravel image
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/microservice-laravel-image:latest -f DockerfileLaravel .
+
+      - name: Push Laravel image
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/microservice-laravel-image:latest
+
+      - name: Build React image
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/microservice-react-image:latest -f DockerfileReact .
+
+      - name: Push React image
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/microservice-react-image:latest
+
+  test-containers:
+    name: Test Docker Containers
+    if: github.actor != 'github-actions'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./project
+
+    needs: build-and-push
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: List files
+        run: ls -la
+
+      - name: Start containers
+        run: docker-compose up -d
+
+      - name: Make test scripts executable
+        run: chmod +x ./tests/test-containers-status.sh ./tests/test-database-accessibility.sh
+
+      - name: Wait for containers to start
+        run: sleep 30
+
+      - name: Check Docker containers status
+        run: ./tests/test-containers-status.sh
+
+      - name: Check Database Accessibility and existence
+        run: ./tests/test-database-accessibility.sh
+
+      - name: Stop containers
+        run: docker-compose down

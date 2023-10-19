@@ -12,9 +12,14 @@ services:
     volumes:
       - ./db/les_gorgones.sql:/docker-entrypoint-initdb.d/les_gorgones.sql
     ports:
-      - "3306"
+      - "32789:3306"
     networks:
       - les-gorgones-db-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   laravel_api:
     container_name: les-gorgones-api
@@ -31,6 +36,11 @@ services:
       - les-gorgones-db-network
       - les-gorgones-api-network
       - les-gorgones-nginx-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:80" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   react_app:
     container_name: les-gorgones-back-office
@@ -46,6 +56,11 @@ services:
     networks:
       - les-gorgones-api-network
       - les-gorgones-nginx-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   nginx:
     container_name: les-gorgones-nginx
@@ -61,6 +76,11 @@ services:
     networks:
       - les-gorgones-nginx-network
     restart: always
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   portainer_agent:
     container_name: les-gorgones-portainer
